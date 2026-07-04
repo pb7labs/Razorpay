@@ -1,8 +1,35 @@
 HELP.md
+
+### Maven / Java build output ###
 target/
+build/
+out/
+*.class
+*.jar
+*.war
+*.ear
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### Local environment / secrets ###
+.env
+.env.*
+*.env
+application-local.yml
+application-local.yaml
+application-dev.yml
+application-dev.yaml
+
+### Logs ###
+logs/
+*.log
+
+### OS files ###
+.DS_Store
+Thumbs.db
 
 ### STS ###
 .apt_generated
@@ -21,13 +48,9 @@ target/
 
 ### NetBeans ###
 /nbproject/private/
-/nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 ### VS Code ###
 .vscode/
