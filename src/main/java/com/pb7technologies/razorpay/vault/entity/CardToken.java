@@ -2,12 +2,18 @@ package com.pb7technologies.razorpay.vault.entity;
 
 import com.pb7technologies.razorpay.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "card_token")
+@Getter
+@Setter
+@AllArgsConstructor
+@RequiredArgsConstructor
+@Builder
 public class CardToken extends BaseEntity {
 
     @Id
