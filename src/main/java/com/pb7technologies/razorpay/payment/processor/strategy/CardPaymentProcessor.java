@@ -28,7 +28,7 @@ public class CardPaymentProcessor implements PaymentProcessor {
             return new PaymentProcessorResponse.Failure("CARD_EXPIRED", "Card has expired Please contact your bank");
         }
 
-        String processorRef = "CARD_PROCESSOR" + RandomizerUtil.randomBase64(16);
+        String processorRef = "CARD_PROCESSOR_" + RandomizerUtil.randomBase64(16);
 
         return new PaymentProcessorResponse.Pending(processorRef);
     }

@@ -11,7 +11,7 @@ public class UpiPaymentProcessor implements PaymentProcessor {
         final String VPA_CODE_FAIL = "fail@okaxis";
 
         String bankCode = request.methodDetails() != null ?
-                request.methodDetails().get("BANK").toString() : null;
+                request.methodDetails().get("vpa").toString() : null;
 
         // Simulation
         if(VPA_CODE_FAIL.equals(bankCode)){
@@ -19,7 +19,7 @@ public class UpiPaymentProcessor implements PaymentProcessor {
                     "Bank rejected the transaction registeration"
             );
         }
-        String processorRef = "UPI_PROCESSOR" + RandomizerUtil.randomBase64(16);
+        String processorRef = "UPI_PROCESSOR_" + RandomizerUtil.randomBase64(16);
 
         return new PaymentProcessorResponse.Pending(processorRef);
     }

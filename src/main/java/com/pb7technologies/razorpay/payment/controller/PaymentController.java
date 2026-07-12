@@ -16,7 +16,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
-    UUID merchantId = UUID.fromString("74da5c21-9322-499c-9c1e-d3a5f55d868c"); //TODO REPLACE IT WITH SPRING SECURITY
+    UUID merchantId = UUID.fromString("9663ec4c-0181-405b-aa50-7745c6f667d0"); //TODO REPLACE IT WITH SPRING SECURITY
 
     @PostMapping
     public ResponseEntity<PaymentResponse> initiate(@Valid @RequestBody PaymentInitRequest request) {

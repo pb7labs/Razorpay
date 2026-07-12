@@ -54,7 +54,9 @@ public class PaymentServiceImpl implements PaymentService {
                 .merchantId(merchantId)
                 .amount(order.getAmount())
                 .status(PaymentStatus.CREATED)
+                .method(request.paymentMethod())
                 .methodDetails(request.methodDetails())
+                .idempotencyKey(UUID.randomUUID().toString())
                 .build();
 
         payment = paymentRepository.save(payment);
@@ -67,12 +69,15 @@ public class PaymentServiceImpl implements PaymentService {
                 request.paymentMethod(),
                 request.methodDetails()
         );
+
+        //before initiate mark the transaction as Authorize attempt
+        paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_ATTEMPT);
         PaymentResult result = paymentGatewayRouter.initiate(paymentRequest);
 
         switch (result) {
             case PaymentResult.Pending pending -> payment.setProcessorReference(pending.registrationRef());
             case PaymentResult.Failure failure -> {
-//                payment.setStatus(PaymentStatus.FAILED);
+                //payment.setStatus(PaymentStatus.FAILED);
                 paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_FAIL);
                 payment.setErrorCode(failure.errorCode());
                 payment.setErrorDescription(failure.errorDescription());
@@ -111,5 +116,46 @@ public class PaymentServiceImpl implements PaymentService {
         payment = paymentRepository.save(payment);
 
         return paymentMapper.toResponse(payment);
+    }
+
+    @Override
+    @Transactional
+    public void resolveAuthorization(UUID paymentId, boolean approve,
+                                     String bankRef, String errorCode, String errorDescription) {
+        Payment payment = paymentRepository.findById(paymentId).orElseThrow(
+                () -> new ResourceNotFoundException("Payment", paymentId)
+        );
+        if (payment.getStatus() != PaymentStatus.AUTHORIZING) {
+            log.warn("Payment is not in Authorizing state, paymentId:{}, Status:{}", paymentId, payment.getStatus());
+        }
+
+        OrderRecord orderRecord = payment.getOrder();
+
+        if (approve) {
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_SUCCESS);
+            payment.setBankReference(bankRef);
+            payment.setAuthorizedAt(LocalDateTime.now());
+
+            //Auto Capture
+            paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_REQUEST);
+            PaymentResult paymentCaptureResult = paymentGatewayRouter.capture(payment.getMethod(), paymentId);
+
+            if (paymentCaptureResult instanceof PaymentResult.Success success) {
+                paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_SUCCESS);
+                payment.setCapturedAt(LocalDateTime.now());
+                orderRecord.setOrderStatus(OrderStatus.PAID);
+            } else if (paymentCaptureResult instanceof PaymentResult.Failure(String code, String description)) {
+                paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_FAIL);
+                payment.setErrorCode(code);
+                payment.setErrorDescription(description);
+            }
+        } else {
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_FAIL);
+            payment.setErrorCode(errorCode);
+            payment.setErrorDescription(errorDescription);
+        }
+
+        paymentRepository.save(payment);
+        orderRepository.save(orderRecord);
     }
 }
