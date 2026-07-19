@@ -13,6 +13,7 @@ import com.pb7technologies.razorpay.merchant.repository.MerchantRepository;
 import com.pb7technologies.razorpay.merchant.service.ApiKeyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     private final MerchantRepository merchantRepository;
     private final ApiKeyRepository apiKeyRepository;
     private final ApiKeyMapper apiKeyMapper;
+    private final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
 
     @Override
     @Transactional
@@ -43,7 +45,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 .merchant(merchant)
                 .keyId(keyId)
                 .environment(request.environment())
-                .keySecretHash(rawSecret)
+                .keySecretHash(BCRYPT.encode(rawSecret))
                 .build();
 
         apiKey = apiKeyRepository.save(apiKey);
@@ -81,7 +83,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         }
         String newRawSecret = RandomizerUtil.randomBase64(40);
         apiKey.setPreviousKeySecretHash(apiKey.getKeySecretHash());
-        apiKey.setKeySecretHash(newRawSecret);
+        apiKey.setKeySecretHash(BCRYPT.encode(newRawSecret));
         apiKey.setRotatedAt(LocalDateTime.now());
         apiKey.setGracePeriodExpiredAt(LocalDateTime.now().plusHours(24));
         apiKey = apiKeyRepository.save(apiKey);
