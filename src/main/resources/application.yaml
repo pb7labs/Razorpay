@@ -46,4 +46,4 @@ app:
   rate-limit:
     method: fixed
     api-key:
-      requests-per-minute: 2
+      requests-per-minute: 1000

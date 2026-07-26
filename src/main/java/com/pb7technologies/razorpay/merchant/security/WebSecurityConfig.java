@@ -4,6 +4,7 @@ import com.pb7technologies.razorpay.common.idempotency.IdempotencyFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -26,6 +27,7 @@ public class WebSecurityConfig {
     private final IdempotencyFilter idempotencyFilter;
 
     @Bean
+    @Order(1)
     public SecurityFilterChain jwtChain(HttpSecurity httpSecurity) {
         return httpSecurity
                 .securityMatcher(JWT_ROUTES)
@@ -42,6 +44,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
+    @Order(2)
     public SecurityFilterChain apiKeyChain(HttpSecurity httpSecurity) {
         return httpSecurity
                 .securityMatcher(API_KEY_ROUTES)

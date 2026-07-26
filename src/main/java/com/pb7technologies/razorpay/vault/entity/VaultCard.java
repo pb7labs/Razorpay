@@ -28,12 +28,13 @@ public class VaultCard extends BaseEntity {
     private String bin; //First six digit of card
 
     @Column(nullable = false)
-    private byte[] encryptedPan; // PAN is User's Card number we stored it encypted
+    private byte[] encryptedPan; // PAN is User's Card number we stored it encrypted
 
     @Column(nullable = false)
     private byte[] encryptedDek; // encrypted dek which helps encrypting PAN
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private CardBrand brand;
 
     @Column(nullable = false)

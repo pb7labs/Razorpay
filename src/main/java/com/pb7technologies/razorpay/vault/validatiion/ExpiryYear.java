@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Target({ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Constraint(validatedBy = {})
+@Constraint(validatedBy = ExpiryYearValidator.class)
 public @interface ExpiryYear {
 
     String message() default "Expiry Year cannot be in the Past";

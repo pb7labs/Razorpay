@@ -27,7 +27,6 @@ public class CardToken extends BaseEntity {
     @JoinColumn(nullable = false, name = "vault_card_id")
     private VaultCard vaultCard;
 
-    @Column(nullable = false)
     private UUID customer;
 
     @Column(nullable = false)

@@ -42,7 +42,7 @@ public class VaultServiceImpl implements VaultService {
     public TokenizeResponse tokenize(TokenizeRequest request, UUID merchantId) {
 
         String lastFour = request.pan().substring(request.pan().length() - 4);
-        String bin = request.pan().substring(0, 4);
+        String bin = request.pan().substring(0, 6);
         CardBrand cardBrand = detectBrand(request.pan());
 
         byte[] dek = KeyGenerators.secureRandom(32).generateKey();
@@ -60,6 +60,8 @@ public class VaultServiceImpl implements VaultService {
                 .encryptedPan(encryptedPan)
                 .cardHolderName(request.cardHolderName())
                 .build();
+
+        vaultCardRepository.save(vaultCard);
 
         String token = "tok_" + RandomizerUtil.randomBase64(32);
 
@@ -80,6 +82,7 @@ public class VaultServiceImpl implements VaultService {
     }
 
     @Override
+    @Transactional
     public PaymentProcessorResponse charge(UUID paymentId, String token, Money amount, Map<String, Object> methodDetails) {
 
         CardToken cardToken = cardTokenRepository.findByTokenAndRevokedAtIsNull(token)
@@ -90,7 +93,7 @@ public class VaultServiceImpl implements VaultService {
 
         try {
             byte[] dek = dekEncryptor.decrypt(vaultCard.getEncryptedDek());
-            panBytes = VaultEncryptionConfig.panEncryptor(dek).decrypt(vaultCard.getEncryptedDek());
+            panBytes = VaultEncryptionConfig.panEncryptor(dek).decrypt(vaultCard.getEncryptedPan());
 
             String pan = new String(panBytes, StandardCharsets.UTF_8);
             String expiry = vaultCard.getExpiryMonth() + "/" + vaultCard.getExpiryYear();
@@ -102,12 +105,14 @@ public class VaultServiceImpl implements VaultService {
 
             log.info("Vault charge registered, token={}******", token.substring(0, 4));
 
-            Arrays.fill(panBytes, (byte) 0);
-
             return response;
         } catch (Exception e) {
             log.warn("Vault charge failed token={}********", token.substring(0, 4));
             return new PaymentProcessorResponse.Failure("VAULT_CHARGE_FAILED", e.getMessage());
+        } finally {
+            if (panBytes != null) {
+                Arrays.fill(panBytes, (byte) 0);
+            }
         }
     }
 
