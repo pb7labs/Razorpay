@@ -1,5 +1,6 @@
 package com.pb7technologies.razorpay.payment.service.impl;
 
+import com.pb7technologies.razorpay.common.enums.EventAggregateType;
 import com.pb7technologies.razorpay.common.enums.OrderStatus;
 import com.pb7technologies.razorpay.common.exception.BusinessRuleViolationException;
 import com.pb7technologies.razorpay.common.exception.DuplicateResourceException;
@@ -12,6 +13,7 @@ import com.pb7technologies.razorpay.payment.entity.OrderRecord;
 import com.pb7technologies.razorpay.payment.entity.Payment;
 import com.pb7technologies.razorpay.payment.mapper.OrderMapper;
 import com.pb7technologies.razorpay.payment.mapper.PaymentMapper;
+import com.pb7technologies.razorpay.payment.outbox.OutboxEventPublisher;
 import com.pb7technologies.razorpay.payment.repository.OrderRepository;
 import com.pb7technologies.razorpay.payment.repository.PaymentRepository;
 import com.pb7technologies.razorpay.payment.service.OrderService;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -36,21 +39,22 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentMapper paymentMapper;
     private final OrderMapper orderMapper;
     private final CustomerService customerService;
+    private final OutboxEventPublisher eventPublisher;
 
     @Value("${payment.order.default-order-expiry-minutes:30}")
     private int defaultExpiryMinutes;
 
     @Override
     @Transactional
-    public OrderResponse create(UUID merchantID, CreateOrderRequest request) {
-        if (request.receipt() != null && orderRepository.existsByMerchantIdAndReceipt(merchantID, request.receipt())) {
+    public OrderResponse create(UUID merchantId, CreateOrderRequest request) {
+        if (request.receipt() != null && orderRepository.existsByMerchantIdAndReceipt(merchantId, request.receipt())) {
             throw new DuplicateResourceException("ORDER_RECEIPT_DUPLICATE", "Order with receipt already exists: " + request.receipt());
         }
 
         UUID customerId = null;
         if (request.customer() != null) {
             customerId = customerService.findOrCreate(
-                    merchantID,
+                    merchantId,
                     request.customer().email(),
                     request.customer().name(),
                     request.customer().phone()
@@ -62,7 +66,7 @@ public class OrderServiceImpl implements OrderService {
                 .amount(request.amount())
                 .notes(request.notes())
                 .customerId(customerId)
-                .merchantId(merchantID)
+                .merchantId(merchantId)
                 .orderStatus(OrderStatus.CREATED)
                 .expiresAt(request.expiresAt() != null ? request.expiresAt()
                         : LocalDateTime.now().plusMinutes(defaultExpiryMinutes))
@@ -70,7 +74,18 @@ public class OrderServiceImpl implements OrderService {
 
         order = orderRepository.save(order);
 
-        //TODO Publish Kafka events about order creation
+        eventPublisher.publish(
+                EventAggregateType.ORDER,
+                order.getId(),
+                "ORDER_CREATED",
+                Map.of(
+                        "orderId", order.getId().toString(),
+                        "merchantId", merchantId.toString(),
+                        "orderStatus", order.getOrderStatus().name(),
+                        "amountUnits", order.getAmount().getAmountUnits(),
+                        "amountCurrency", order.getAmount().getCurrency()
+                )
+        );
 
         return orderMapper.toResponse(order);
     }
@@ -94,6 +109,20 @@ public class OrderServiceImpl implements OrderService {
         }
         orderRecord.setOrderStatus(OrderStatus.CANCELLED);
         orderRecord = orderRepository.save(orderRecord);
+
+        eventPublisher.publish(
+                EventAggregateType.ORDER,
+                orderRecord.getId(),
+                "ORDER_CANCELED",
+                Map.of(
+                        "orderId", orderRecord.getId().toString(),
+                        "merchantId", merchantId.toString(),
+                        "orderStatus", orderRecord.getOrderStatus().name(),
+                        "amountUnits", orderRecord.getAmount().getAmountUnits(),
+                        "amountCurrency", orderRecord.getAmount().getCurrency()
+                )
+        );
+
         return orderMapper.toResponse(orderRecord);
     }
 
