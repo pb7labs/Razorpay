@@ -43,8 +43,8 @@ public class OutboxPoller {
                 kafkaTemplate.send(topic, key, envelope)
                         .get(5, TimeUnit.SECONDS);
 
-                // this is single source of truth, if the saving to DB failed kafka will resend the event
-                // but we are making sure that atleast once delivery of success response
+                // this is single source of truth, if the saving to DB failed kafka will resend the event,
+                // but we are making sure that at least once delivery of success response
                 // if error anyway handled in catch
                 outboxResultHandler.handleEventPublished(event);
             } catch (Exception e) {

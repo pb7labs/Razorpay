@@ -78,3 +78,9 @@ app:
       order: order.events
       refund: refund.events
       settlement: settlement.events
+
+  webhook:
+    properties:
+      delivery:
+        redis-key: "webhook-retry"
+        poll-batch-size: 100

@@ -31,7 +31,7 @@ public class MerchantWebhookConfig extends BaseEntity {
     private String targetUrl;
 
     @Column(length = 255)
-    private String webhookSecretHash;
+    private String webhookSecret;
 
     // type of events which merchant wants to listen [orders.created, payment.captured]
     // Comma-separated event types
@@ -39,5 +39,19 @@ public class MerchantWebhookConfig extends BaseEntity {
     private String eventTypes;
 
     @Column(nullable = false)
-    private Boolean enabled;
+    @Builder.Default
+    private Boolean enabled = true;
+
+    public boolean isSubscribedTo(String eventType){
+        if(eventType == null || eventType.isBlank()){
+            return true;
+        }
+
+        for (String type: eventTypes.split(",")){
+            String trimmed = type.trim();
+            if(trimmed.equalsIgnoreCase("ALL") || trimmed.equalsIgnoreCase(eventType))
+                return true;
+        }
+        return false;
+    }
 }
