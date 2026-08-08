@@ -19,6 +19,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   kafka:
+    listener:
+      ack-mode: manual
     bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
     producer:
       acks: all
@@ -41,6 +43,10 @@ spring:
         spring.json.trusted.packages: "com.pb7technologies.razorpay.*"
         spring.json.use.type.headers: false
         spring.json.value.default.type: java.util.LinkedHashMap
+
+threads:
+  virtual:
+    enabled: true
 
 vault:
   master-key: HgVtmhU8x2/tZT+Xv4Ywfz1Gyxv16bLB7r9lPK7mTvI=
@@ -75,9 +81,9 @@ app:
   kafka:
     topics:
       payment: payments.events
-      order: order.events
-      refund: refund.events
-      settlement: settlement.events
+      order: orders.events
+      refund: refunds.events
+      settlement: settlements.events
 
   webhook:
     properties:
