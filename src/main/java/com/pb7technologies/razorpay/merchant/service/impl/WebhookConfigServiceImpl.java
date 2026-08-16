@@ -1,8 +1,9 @@
 package com.pb7technologies.razorpay.merchant.service.impl;
 
+import com.pb7technologies.razorpay.common.enums.MerchantStatus;
 import com.pb7technologies.razorpay.common.exception.ResourceNotFoundException;
 import com.pb7technologies.razorpay.common.util.RandomizerUtil;
-import com.pb7technologies.razorpay.merchant.api.MerchantWebhookApi;
+import com.pb7technologies.razorpay.merchant.api.MerchantLookupService;
 import com.pb7technologies.razorpay.merchant.dto.request.UpdateWebhookConfigRequest;
 import com.pb7technologies.razorpay.merchant.dto.response.WebhookConfigResponse;
 import com.pb7technologies.razorpay.common.dto.WebhookTarget;
@@ -26,7 +27,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class WebhookConfigServiceImpl implements WebhookConfigService, MerchantWebhookApi {
+public class WebhookConfigServiceImpl implements WebhookConfigService {
 
     private final MerchantRepository merchantRepository;
     private final WebhookConfigRepository merchantWebhookConfigRepository;
@@ -90,20 +91,5 @@ public class WebhookConfigServiceImpl implements WebhookConfigService, MerchantW
     private MerchantWebhookConfig requireOwnedConfig(UUID merchantId, UUID configId) {
         return merchantWebhookConfigRepository.findByIdAndMerchant_Id(configId, merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("MerchantWebhookConfig", configId));
-    }
-
-
-    @Override
-    public List<WebhookTarget> getActiveConfigsForEvent(UUID merchantId, String eventType) {
-        return merchantWebhookConfigRepository.findByMerchant_IdAndEnabledTrue(merchantId).stream()
-                .filter(config -> config.isSubscribedTo(eventType))
-                .map(config -> {
-                    byte[] encryptedSecretBytes = Base64.getDecoder().decode(config.getWebhookSecret());
-                    byte[] decryptSecretBytes = bytesEncryptor.decrypt(encryptedSecretBytes);
-                    return new WebhookTarget(
-                            config.getId(),
-                            config.getTargetUrl(),
-                            new String(decryptSecretBytes, StandardCharsets.UTF_8));
-                }).toList();
     }
 }
