@@ -21,7 +21,7 @@ spring:
   kafka:
     listener:
       ack-mode: manual
-    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:29092}
     producer:
       acks: all
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
